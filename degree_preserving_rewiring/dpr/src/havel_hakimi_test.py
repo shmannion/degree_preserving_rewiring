@@ -85,7 +85,8 @@ def havel_hakimi_positive(
         new_neighbors[node] = set()
 
 
-    for node in nodes:
+    potential_edges = []
+    for ind, node in enumerate(nodes):
         for target in target_nodes:
             if remaining_degree[node] > 0:
                 if remaining_degree[target] > 0:
@@ -97,6 +98,12 @@ def havel_hakimi_positive(
 
 
         target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
+        # for target in nodes[ind:]:
+            # if len(new_neighbors[node]) < original_degree[node]:
+            #     if len(new_neighbors[target]) < original_degree[target]:
+            #         if node != target:
+            #             new_neighbors[node].add(target)
+            #             new_neighbors[target].add(node)
     
     edges_to_add = []
     for node in new_neighbors:
@@ -142,6 +149,7 @@ def havel_hakimi_positive(
                'summary': 0}
 
         affected_nodes = []
+        total_degree = 0
         missing_degree = {}
         
         for node in original_degree:
@@ -240,6 +248,8 @@ def havel_hakimi_negative(
         results dataframe passed to the function with one row added per algorithm
         iteration
     """
+    df_order = pd.DataFrame()
+    df_rev = pd.DataFrame()
     before = degree_list(G)    
     alg_start = time.time()    
     edges_to_remove = list(G.edges())                
@@ -247,19 +257,37 @@ def havel_hakimi_negative(
     #record the orginal degree of each node
     original_degree = {}
     remaining_degree = {}
-    nodes = []
+    nodes_descending = []
+    nodes_ascending = []
     for edge in edges_to_remove:
         for node in edge:
-            if node not in nodes:
-                nodes.append(node)
+            if node not in nodes_ascending:
+                nodes_ascending.append(node)
+                nodes_descending.append(node)
             original_degree[node] = G.degree(node)
             remaining_degree[node] = original_degree[node]
     
 
     #sort nodes in descending order of degree
+    nodes = sorted(nodes_descending, key=original_degree.get, reverse=True)
+    x = []
+    y = []
+    for node in nodes:
+        x.append(node)
+        y.append(G.degree(node))
+    i = 0
+    df_order[f'node_{i}'] = pd.Series(x)
+    df_order[f'degree_{i}'] = pd.Series(y)
+    x = []
+    y = []
     nodes = sorted(nodes, key=original_degree.get, reverse=False)
-    # target_nodes = sorted(nodes, key=original_degree.get, reverse=True)
-    target_nodes = list(reversed(nodes))
+    target_nodes = sorted(nodes_ascending, key=original_degree.get, reverse=True)
+    for node in target_nodes:
+        x.append(node)
+        y.append(G.degree(node))
+    df_rev[f'node_{i}'] = pd.Series(x)
+    df_rev[f'degree_{i}'] = pd.Series(y)
+    i += 1
     row = {'name': name,
            'iteration' : itr, 
            'time' : 0, 
@@ -274,14 +302,14 @@ def havel_hakimi_negative(
            'method': 1,
            'summary': 0}
 
-    #dictionary in which to record the new neighbours we are adding 
+    #dictionary in which to record the current degree of the nodes as we add edges 
     new_neighbors = {}
     for node in original_degree:
-        new_neighbors[node] = set() 
+        new_neighbors[node] = set() #original_degree[node] - appearances[node]
 
     edges_to_add = []
     
-    for node in nodes:
+    for ind, node in enumerate(nodes):
         for target in target_nodes:
             if remaining_degree[node] > 0:
                 if remaining_degree[target] > 0:
@@ -293,6 +321,8 @@ def havel_hakimi_negative(
 
 
         target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
+    potential_edges = []
+    df_rev.to_csv('test.csv')
     
     edges_to_add = []
     for node in new_neighbors:
@@ -334,6 +364,7 @@ def havel_hakimi_negative(
                'summary': 0}
 
         affected_nodes = []
+        total_degree = 0
         missing_degree = {}
         for node in original_degree:
             if G.degree(node) != original_degree[node]:
