@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import time
 import random
-from rewiring_helpers import degree_list, check_new_edges 
+from .rewiring_helpers import degree_list, check_new_edges 
 
 def havel_hakimi_positive(
     G: nx.Graph, 
@@ -76,8 +76,8 @@ def havel_hakimi_positive(
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
-           'method': 1,
-           'summary': 0}
+           'method': 'max',
+           'summary': False}
 
     #dictionary in which to record the current neighbors of the nodes as we add edges 
     new_neighbors = {}
@@ -85,8 +85,7 @@ def havel_hakimi_positive(
         new_neighbors[node] = set()
 
 
-    potential_edges = []
-    for ind, node in enumerate(nodes):
+    for node in nodes:
         for target in target_nodes:
             if remaining_degree[node] > 0:
                 if remaining_degree[target] > 0:
@@ -98,12 +97,6 @@ def havel_hakimi_positive(
 
 
         target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
-        # for target in nodes[ind:]:
-            # if len(new_neighbors[node]) < original_degree[node]:
-            #     if len(new_neighbors[target]) < original_degree[target]:
-            #         if node != target:
-            #             new_neighbors[node].add(target)
-            #             new_neighbors[target].add(node)
     
     edges_to_add = []
     for node in new_neighbors:
@@ -131,7 +124,7 @@ def havel_hakimi_positive(
     #degree and remove edges to rewire to them
     
     while success == False:
-        
+        print('FPL: failed to rewire correctly (positive)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -145,11 +138,10 @@ def havel_hakimi_positive(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 1,
-               'summary': 0}
+               'method': 'max',
+               'summary': False}
 
         affected_nodes = []
-        total_degree = 0
         missing_degree = {}
         
         for node in original_degree:
@@ -211,7 +203,7 @@ def havel_hakimi_positive(
         if time.time() - alg_start > max_time:
             break
 
-    results.loc[len(results)] = row
+        results.loc[len(results)] = row
     return G
 
 def havel_hakimi_negative(
@@ -248,8 +240,6 @@ def havel_hakimi_negative(
         results dataframe passed to the function with one row added per algorithm
         iteration
     """
-    df_order = pd.DataFrame()
-    df_rev = pd.DataFrame()
     before = degree_list(G)    
     alg_start = time.time()    
     edges_to_remove = list(G.edges())                
@@ -257,37 +247,18 @@ def havel_hakimi_negative(
     #record the orginal degree of each node
     original_degree = {}
     remaining_degree = {}
-    nodes_descending = []
-    nodes_ascending = []
+    nodes = []
     for edge in edges_to_remove:
         for node in edge:
-            if node not in nodes_ascending:
-                nodes_ascending.append(node)
-                nodes_descending.append(node)
+            if node not in nodes:
+                nodes.append(node)
             original_degree[node] = G.degree(node)
             remaining_degree[node] = original_degree[node]
     
 
     #sort nodes in descending order of degree
-    nodes = sorted(nodes_descending, key=original_degree.get, reverse=True)
-    x = []
-    y = []
-    for node in nodes:
-        x.append(node)
-        y.append(G.degree(node))
-    i = 0
-    df_order[f'node_{i}'] = pd.Series(x)
-    df_order[f'degree_{i}'] = pd.Series(y)
-    x = []
-    y = []
     nodes = sorted(nodes, key=original_degree.get, reverse=False)
-    target_nodes = sorted(nodes_ascending, key=original_degree.get, reverse=True)
-    for node in target_nodes:
-        x.append(node)
-        y.append(G.degree(node))
-    df_rev[f'node_{i}'] = pd.Series(x)
-    df_rev[f'degree_{i}'] = pd.Series(y)
-    i += 1
+    target_nodes = list(reversed(nodes))
     row = {'name': name,
            'iteration' : itr, 
            'time' : 0, 
@@ -299,17 +270,17 @@ def havel_hakimi_negative(
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
-           'method': 1,
-           'summary': 0}
+           'method': 'max',
+           'summary': False}
 
-    #dictionary in which to record the current degree of the nodes as we add edges 
+    #dictionary in which to record the new neighbours we are adding 
     new_neighbors = {}
     for node in original_degree:
-        new_neighbors[node] = set() #original_degree[node] - appearances[node]
+        new_neighbors[node] = set() 
 
     edges_to_add = []
     
-    for ind, node in enumerate(nodes):
+    for node in nodes:
         for target in target_nodes:
             if remaining_degree[node] > 0:
                 if remaining_degree[target] > 0:
@@ -321,8 +292,6 @@ def havel_hakimi_negative(
 
 
         target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
-    potential_edges = []
-    df_rev.to_csv('test.csv')
     
     edges_to_add = []
     for node in new_neighbors:
@@ -347,6 +316,7 @@ def havel_hakimi_negative(
             success = False
 
     while success == False:
+        print('FPL: failed to rewire correctly (negative)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -360,11 +330,10 @@ def havel_hakimi_negative(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 1,
-               'summary': 0}
+               'method': 'max',
+               'summary': False}
 
         affected_nodes = []
-        total_degree = 0
         missing_degree = {}
         for node in original_degree:
             if G.degree(node) != original_degree[node]:
@@ -426,7 +395,7 @@ def havel_hakimi_negative(
         if time.time() - alg_start > max_time:
             break
     
-    results.loc[len(results)] = row
+        results.loc[len(results)] = row
     
     return G
 

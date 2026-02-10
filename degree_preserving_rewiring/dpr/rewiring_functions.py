@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import time
 import random
-from havel_hakimi import havel_hakimi_positive, havel_hakimi_negative
-from rewiring_helpers import degree_list, check_new_edges, test_sample_sizes
+from .havel_hakimi import havel_hakimi_positive, havel_hakimi_negative
+from .rewiring_helpers import degree_list, check_new_edges, test_sample_sizes
 
 def rewire(
     G, 

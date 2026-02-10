@@ -1,7 +1,7 @@
-from rewiring_functions import *
+from .rewiring_functions import *
 import networkx as nx
 import pandas as pd
-from generate_graphs_itm import generate_graph 
+from .generate_graphs_itm import generate_graph 
 
 # for dist in ['weibull', 'lognormal', 'exponential']:
 #     for i in range(0,30):

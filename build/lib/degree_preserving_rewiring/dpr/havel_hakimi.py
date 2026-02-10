@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import time
 import random
-from rewiring_helpers import degree_list, check_new_edges 
+from .rewiring_helpers import degree_list, check_new_edges 
 
 def havel_hakimi_positive(
     G: nx.Graph, 
