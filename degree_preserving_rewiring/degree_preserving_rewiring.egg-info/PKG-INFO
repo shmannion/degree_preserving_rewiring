@@ -1,5 +1,5 @@
-Metadata-Version: 2.1
-Name: degree-preserving-rewiring
+Metadata-Version: 2.4
+Name: degree_preserving_rewiring
 Version: 0.2.7
 Summary: Functions to tune the assortativity of a networkx Graph while maintaining degree sequence
 Home-page: 
@@ -12,6 +12,15 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE.txt
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-python
+Dynamic: summary
 
 # Installation
 

@@ -6,7 +6,7 @@ Created on Thu Jul 27 16:05:08 2023
 """
 
 import numpy as np
-from .MLE.MLE_functions import MLE, degree_list
+from MLE.MLE_functions import MLE, degree_list
 import networkx as nx
 
 def generate_graph(distribution, target_mean, size, params='default'):

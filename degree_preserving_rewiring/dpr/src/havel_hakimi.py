@@ -76,8 +76,8 @@ def havel_hakimi_positive(
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
-           'method': 1,
-           'summary': 0}
+           'method': 'max',
+           'summary': False}
 
     #dictionary in which to record the current neighbors of the nodes as we add edges 
     new_neighbors = {}
@@ -124,7 +124,7 @@ def havel_hakimi_positive(
     #degree and remove edges to rewire to them
     
     while success == False:
-        
+        print('FPL: failed to rewire correctly (positive)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -138,8 +138,8 @@ def havel_hakimi_positive(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 1,
-               'summary': 0}
+               'method': 'max',
+               'summary': False}
 
         affected_nodes = []
         missing_degree = {}
@@ -203,7 +203,7 @@ def havel_hakimi_positive(
         if time.time() - alg_start > max_time:
             break
 
-    results.loc[len(results)] = row
+        results.loc[len(results)] = row
     return G
 
 def havel_hakimi_negative(
@@ -258,7 +258,6 @@ def havel_hakimi_negative(
 
     #sort nodes in descending order of degree
     nodes = sorted(nodes, key=original_degree.get, reverse=False)
-    # target_nodes = sorted(nodes, key=original_degree.get, reverse=True)
     target_nodes = list(reversed(nodes))
     row = {'name': name,
            'iteration' : itr, 
@@ -271,8 +270,8 @@ def havel_hakimi_negative(
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
-           'method': 1,
-           'summary': 0}
+           'method': 'max',
+           'summary': False}
 
     #dictionary in which to record the new neighbours we are adding 
     new_neighbors = {}
@@ -317,6 +316,7 @@ def havel_hakimi_negative(
             success = False
 
     while success == False:
+        print('FPL: failed to rewire correctly (negative)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -330,8 +330,8 @@ def havel_hakimi_negative(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 1,
-               'summary': 0}
+               'method': 'max',
+               'summary': False}
 
         affected_nodes = []
         missing_degree = {}
@@ -395,7 +395,7 @@ def havel_hakimi_negative(
         if time.time() - alg_start > max_time:
             break
     
-    results.loc[len(results)] = row
+        results.loc[len(results)] = row
     
     return G
 

@@ -91,8 +91,8 @@ def rewire(
                  'self_edges': 0,
                  'existing_edges': 0, 
                  'preserved': True,
-                 'method': 0,
-                 'summary':0}
+                 'method': method,
+                 'summary':False}
     
     results = pd.DataFrame([first_row])
 
@@ -129,14 +129,14 @@ def rewire(
                    'existing_edges': results['existing_edges'].sum(), 
                    'preserved': list(before) == list(after),
                    'method': 0,
-                   'summary': 1}
+                   'summary': True}
 
     if method == 'new':
-        summary_row['method'] = 1
+        summary_row['method'] = 'new'
     if method == 'original':
-        summary_row['method'] = 2
+        summary_row['method'] = 'original'
     if method == 'max':
-        summary_row['method'] = 2
+        summary_row['method'] = 'max'
 
     results.loc[len(results)] = summary_row
 
@@ -210,8 +210,8 @@ def positively_rewire(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 2,
-               'summary': 0}
+               'method': 'new',
+               'summary': False}
 
         edges = list(G.edges())                
         edges_to_remove = random.sample(edges, sample_size)
@@ -307,8 +307,8 @@ def negatively_rewire(
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
-               'method': 2,
-               'summary': 0}
+               'method': 'new',
+               'summary': False}
 
         edges = list(G.edges())                
         edges_to_remove = random.sample(edges, sample_size)
