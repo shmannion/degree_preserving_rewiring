@@ -30,7 +30,7 @@ def create_network(dataset, headers):
     G = nx.convert_node_labels_to_integers(G, first_label=0)
     return G
 
-def Create_Network1(dataset): ##Use if file has one header
+def create_network1(dataset): ##Use if file has one header
     data = dataset
     with open(data) as df:
         G = nx.Graph()
@@ -42,7 +42,7 @@ def Create_Network1(dataset): ##Use if file has one header
     G = nx.convert_node_labels_to_integers(G, first_label = 0)  
     return G
 
-def Create_Network2(dataset): ##Use if file has 2 headers
+def create_network2(dataset): ##Use if file has 2 headers
     data = dataset
     with open(data) as df:
         G = nx.Graph()

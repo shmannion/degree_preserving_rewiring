@@ -79,7 +79,7 @@ def rewire(
     
 
     """
-
+    b_start = time.time()
     first_row = {'name':name,
                  'iteration': 0, 
                  'time': 0, 
@@ -108,8 +108,10 @@ def rewire(
 
     else:
       if method == 'new':
+        a_start = time.time()
         G = havel_hakimi_negative(G, results, name, sample_size, return_type)
         G = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
+        a_end = time.time()
       if method == 'original':
         G = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'max':
@@ -139,7 +141,7 @@ def rewire(
         summary_row['method'] = 'max'
 
     results.loc[len(results)] = summary_row
-
+    b_end = time.time()
     if return_type == 'summary':
         summarised_results = results.loc[(results['summary']==1)]
         return summarised_results
@@ -195,7 +197,8 @@ def positively_rewire(
 
     alg_start = time.time()
     itr = 1
-    while nx.degree_assortativity_coefficient(G) < target_assortativity:
+    r = nx.degree_assortativity_coefficient(G)
+    while r < target_assortativity:
         loop_start = time.time()
         itr += 1
         #define dictionary to track relevant info for each loop
@@ -233,12 +236,12 @@ def positively_rewire(
         else:
             G.add_edges_from(edges_to_remove)
 
+        r = nx.degree_assortativity_coefficient(G)
+        row['r'] = r
         row['time'] += time.time() - loop_start
-        row['r'] = nx.degree_assortativity_coefficient(G)
         results.loc[len(results)] = row
 
         time_elapsed = time.time() - alg_start
-    
         
         if timed == True:
             if time_elapsed > time_limit:
@@ -292,7 +295,8 @@ def negatively_rewire(
     
     alg_start = time.time()
     itr = 0
-    while nx.degree_assortativity_coefficient(G) > target_assortativity:
+    r = nx.degree_assortativity_coefficient(G)
+    while r > target_assortativity:
         loop_start = time.time()
         itr += 1
         #define dictionary to track relevant info for each loop
@@ -332,8 +336,9 @@ def negatively_rewire(
         else:
             G.add_edges_from(edges_to_remove)
 
+        r = nx.degree_assortativity_coefficient(G)
         row['time'] += time.time() - loop_start
-        row['r'] = nx.degree_assortativity_coefficient(G)
+        row['r'] = r
         results.loc[len(results)] = row
         time_elapsed = time.time() - alg_start
         

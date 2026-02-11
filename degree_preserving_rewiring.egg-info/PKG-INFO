@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: degree-preserving-rewiring
-Version: 0.1.0
+Version: 1.0.0
 Summary: Degree-preserving graph rewiring algorithms
 Requires-Python: >=3.9
 License-File: LICENSE.txt

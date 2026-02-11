@@ -1,4 +1,1 @@
-build
-data
 degree_preserving_rewiring
-dist

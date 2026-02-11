@@ -124,7 +124,6 @@ def havel_hakimi_positive(
     #degree and remove edges to rewire to them
     
     while success == False:
-        print('FPL: failed to rewire correctly (positive)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -184,7 +183,6 @@ def havel_hakimi_positive(
         fails = 0
         for node in original_degree:
             if G.degree(node) != original_degree[node]:
-                print("mismatch")
                 fails += 1
         
         if fails > 0:
@@ -316,7 +314,6 @@ def havel_hakimi_negative(
             success = False
 
     while success == False:
-        print('FPL: failed to rewire correctly (negative)')        
         itr += 1
         start = time.time()
         row = {'name': name,
@@ -337,9 +334,6 @@ def havel_hakimi_negative(
         missing_degree = {}
         for node in original_degree:
             if G.degree(node) != original_degree[node]:
-                print('mismatch')
-                print(len(G.edges()))
-                print(f'node {node} had original degree {original_degree[node]} and current degree {G.degree[node]}')
                 missing_degree[node] = original_degree[node] - G.degree(node)
                 affected_nodes.append(node)
    
