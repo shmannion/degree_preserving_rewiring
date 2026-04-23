@@ -96,7 +96,7 @@ def havel_hakimi_positive(
                         remaining_degree[target] -= 1
 
 
-        target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
+        # target_nodes = sorted(target_nodes, key=remaining_degree.get, reverse=True)
     
     edges_to_add = []
     for node in new_neighbors:
