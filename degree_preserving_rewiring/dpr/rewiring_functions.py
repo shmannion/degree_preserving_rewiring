@@ -538,3 +538,287 @@ def reduce_clustering(
 
     return G
 
+
+def reduce_clustering_unconstrained(
+    G: nx.Graph,
+    name,
+    results,
+    target_clustering=None,
+    max_iterations=None,
+    max_consecutive_failures=10000,
+    timed=False,
+    time_limit=600,
+    log_failures=False):
+    """
+    Reduces the clustering coefficient of G via double-edge swaps that preserve
+    the degree sequence but NOT degree assortativity. Intended as an empirical
+    lower-bound estimator for the minimum clustering achievable at a given
+    degree sequence, unconstrained by r.
+
+    Two random edges (u, b) and (v, y) are selected; endpoint orientation is
+    randomised so both reachable swap outcomes are equally likely. The swap
+    (u, b), (v, y) -> (v, b), (u, y) is accepted iff the exact change in
+    average clustering is strictly negative.
+
+    Parameters match reduce_clustering. See its docstring for column meanings.
+
+    Notes
+    -----
+    Assortativity changes during the run. The 'r' column records the value at
+    function entry only; call nx.degree_assortativity_coefficient(G) on the
+    returned graph for the post-run value.
+    """
+    alg_start = time.time()
+    itr = 0
+    consecutive_failures = 0
+
+    n_nodes = G.number_of_nodes()
+    degrees = dict(G.degree())
+    inv_weight = {}
+    for node, d in degrees.items():
+        inv_weight[node] = (2.0 / (n_nodes * d * (d - 1))) if d >= 2 else 0.0
+
+    t = nx.triangles(G)
+    C_avg = sum(t[v] * inv_weight[v] for v in t)
+
+    neighbours = {n: set(G.neighbors(n)) for n in G.nodes()}
+    r_start = nx.degree_assortativity_coefficient(G)
+
+    # Edge list + index map: O(1) uniform sampling and O(1) swap-pop removal.
+    def _canon(a, b):
+        return (a, b) if a <= b else (b, a)
+
+    edge_list = [_canon(u, v) for u, v in G.edges()]
+    edge_index = {e: i for i, e in enumerate(edge_list)}
+
+    def _remove_edge(e):
+        i = edge_index.pop(e)
+        last = edge_list[-1]
+        if i != len(edge_list) - 1:
+            edge_list[i] = last
+            edge_index[last] = i
+        edge_list.pop()
+
+    def _add_edge(e):
+        edge_index[e] = len(edge_list)
+        edge_list.append(e)
+
+    while True:
+        loop_start = time.time()
+        if max_iterations is not None and itr >= max_iterations:
+            print(f'exiting due to max iterations reached, took {time.time() - alg_start}')
+            break
+        if consecutive_failures >= max_consecutive_failures:
+            print(f'exiting due to max failures reached, took {time.time() - alg_start}')
+            break
+        if timed and (time.time() - alg_start) > time_limit:
+            print(f'exiting due to max time reached, took {time.time() - alg_start}')
+            break
+        if target_clustering is not None and C_avg <= target_clustering:
+            print(f'exiting due to target reached, took {time.time() - alg_start}')
+            break
+
+        itr += 1
+        accepted = False
+        reason = None
+
+        e1, e2 = random.sample(edge_list, 2)
+        u, b = e1
+        v, y = e2
+        if random.random() < 0.5:
+            u, b = b, u
+        if random.random() < 0.5:
+            v, y = y, v
+
+        if u == v or u == y or b == v or b == y:
+            reason = 'self_edges'
+            consecutive_failures += 1
+        else:
+            N_u = neighbours[u]
+            N_v = neighbours[v]
+            N_b = neighbours[b]
+            N_y = neighbours[y]
+
+            if b in N_v or y in N_u:
+                reason = 'existing_edges'
+                consecutive_failures += 1
+            else:
+                W_ub = N_u & N_b
+                W_vy = N_v & N_y
+                W_vb = (N_v & N_b) - {u, y}
+                W_uy = (N_u & N_y) - {v, b}
+
+                dC = 0.0
+                if W_ub:
+                    s_w = sum(inv_weight[w] for w in W_ub)
+                    dC -= len(W_ub) * (inv_weight[u] + inv_weight[b]) + s_w
+                if W_vy:
+                    s_w = sum(inv_weight[w] for w in W_vy)
+                    dC -= len(W_vy) * (inv_weight[v] + inv_weight[y]) + s_w
+                if W_vb:
+                    s_w = sum(inv_weight[w] for w in W_vb)
+                    dC += len(W_vb) * (inv_weight[v] + inv_weight[b]) + s_w
+                if W_uy:
+                    s_w = sum(inv_weight[w] for w in W_uy)
+                    dC += len(W_uy) * (inv_weight[u] + inv_weight[y]) + s_w
+
+                if dC < 0:
+                    G.remove_edge(u, b)
+                    G.remove_edge(v, y)
+                    G.add_edge(v, b)
+                    G.add_edge(u, y)
+                    N_u.discard(b); N_u.add(y)
+                    N_v.discard(y); N_v.add(b)
+                    N_b.discard(u); N_b.add(v)
+                    N_y.discard(v); N_y.add(u)
+
+                    for w in W_ub:
+                        t[u] -= 1; t[b] -= 1; t[w] -= 1
+                    for w in W_vy:
+                        t[v] -= 1; t[y] -= 1; t[w] -= 1
+                    for w in W_vb:
+                        t[v] += 1; t[b] += 1; t[w] += 1
+                    for w in W_uy:
+                        t[u] += 1; t[y] += 1; t[w] += 1
+
+                    _remove_edge(e1)
+                    _remove_edge(e2)
+                    _add_edge(_canon(v, b))
+                    _add_edge(_canon(u, y))
+
+                    C_avg += dC
+                    accepted = True
+                    consecutive_failures = 0
+                else:
+                    consecutive_failures += 1
+
+        if accepted or log_failures:
+            row = {'name': name,
+                   'iteration': itr,
+                   'time': time.time() - loop_start,
+                   'r': r_start,
+                   'target_r': 0,
+                   'sample_size': 2,
+                   'edges_rewired': 2 if accepted else 0,
+                   'duplicate_edges': 0,
+                   'self_edges': 1 if reason == 'self_edges' else 0,
+                   'existing_edges': 1 if reason == 'existing_edges' else 0,
+                   'preserved': True,
+                   'method': 'reduce_clustering_unconstrained',
+                   'summary': False}
+            results.loc[len(results)] = row
+
+    return G
+
+
+def connect_components(
+    G: nx.Graph,
+    name,
+    results,
+    max_attempts=50):
+    """
+    Merges disconnected components of G via random inter-component double-edge
+    swaps. Preserves the degree sequence; does NOT preserve assortativity.
+    Intended as a fast reconnection step when small shifts in r are acceptable.
+
+    At each iteration a random edge is drawn from the smallest non-trivial
+    component and from the current largest component, and a double-edge swap
+    (a1,a2),(b1,b2) -> (a1,b1),(a2,b2) merges them. If BOTH chosen edges are
+    bridges in their components the swap splits the graph rather than merging,
+    so each attempt is verified with has_path(a1, a2) and reverted on failure.
+    Up to max_attempts attempts per merge before giving up.
+
+    Isolated (degree-0) nodes cannot be reached by edge swap and are left as
+    separate components.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        Graph to be merged (modified in place).
+    name : str
+        Name recorded in the results DataFrame.
+    results : pandas.DataFrame
+        One row appended per executed merge.
+    max_attempts : int
+        Maximum edge-pair attempts per merge. Default 50.
+
+    Returns
+    -------
+    G : nx.Graph
+        Graph with one non-trivial connected component (assuming all merges
+        succeeded).
+    """
+    itr = 0
+
+    isolated = [n for n in G.nodes() if G.degree(n) == 0]
+    if isolated:
+        print(f'warning: {len(isolated)} isolated node(s) of degree 0 cannot '
+              f'be merged by edge swap and will remain as separate components')
+
+    components = [list(c) for c in nx.connected_components(G) if len(c) > 1]
+    r_start = nx.degree_assortativity_coefficient(G)
+    print(f'starting connect_components: {len(components)} non-trivial components, '
+          f'r={r_start:.4f}')
+
+    components.sort(key=len)
+
+    while len(components) > 1:
+        loop_start = time.time()
+        itr += 1
+
+        small = components[0]
+        main = components[-1]
+
+        merged = False
+        for _ in range(max_attempts):
+            a1 = random.choice(main)
+            a2 = random.choice(list(G.neighbors(a1)))
+            b1 = random.choice(small)
+            b2 = random.choice(list(G.neighbors(b1)))
+
+            G.remove_edge(a1, a2)
+            G.remove_edge(b1, b2)
+            G.add_edge(a1, b1)
+            G.add_edge(a2, b2)
+
+            # The swap merges iff at least one of (a1,a2) and (b1,b2) is not
+            # a bridge. When both are bridges the graph splits instead:
+            # verify by checking connectivity of the two main endpoints.
+            if nx.has_path(G, a1, a2):
+                merged = True
+                break
+
+            G.remove_edge(a1, b1)
+            G.remove_edge(a2, b2)
+            G.add_edge(a1, a2)
+            G.add_edge(b1, b2)
+
+        if not merged:
+            print(f'warning: could not merge on iteration {itr} after '
+                  f'{max_attempts} attempts (both components may be tree-like); '
+                  f'{len(components)} components left unmerged')
+            break
+
+        # small absorbed into main; main can only grow, so it stays at [-1].
+        main.extend(small)
+        components.pop(0)
+
+        row = {'name': name,
+               'iteration': itr,
+               'time': time.time() - loop_start,
+               'r': 0,
+               'target_r': 0,
+               'sample_size': 2,
+               'edges_rewired': 2,
+               'duplicate_edges': 0,
+               'self_edges': 0,
+               'existing_edges': 0,
+               'preserved': True,
+               'method': 'connect_components',
+               'summary': False}
+        results.loc[len(results)] = row
+
+
+    print(f'done: r={nx.degree_assortativity_coefficient(G):.4f}')
+    return G
+
